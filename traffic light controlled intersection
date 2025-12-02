@@ -1,0 +1,29 @@
+class TrafficLight {
+    private ReentrantLock lock;
+    private boolean isLightGreen;
+
+    public TrafficLight() {
+        lock = new ReentrantLock(true);
+        isLightGreen = true;
+    }
+
+    public void carArrived (
+        int carId,
+        int roadId,
+        int direction,
+
+        Runnable turnGreen,
+        Runnable crossCar,
+    ) throws InterruptedException {
+        lock.lock()
+        try {
+            if (!isLightGreen && roadId == 1 || isLightGreen && roadId == 2) {
+                isLightGreen = !isLightGreen;
+                turnGreen.run();
+            }
+            crossCar.run();
+        } finally {
+            lock.unlock();
+        }
+    }
+}
