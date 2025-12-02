@@ -1,0 +1,56 @@
+class Solution {
+    public List<String> crawl(String startUrl, HtmlParser htmlParser) {
+        String hostname = getHostName(startUrl);
+
+        List<String> res = new ArrayList<>();
+        Set<String> visited = new HashSet<>();
+
+        BlockingQueue<String> queue = new LinkedBlockingQueue<>();
+
+        Deque<Future> tasks = new ArrayDeque<>();
+
+        queue.offer(startUrl);
+
+        ExecutorService executor = Executors.newFixedThreadPool(4, r -> {
+            Thread t = new Thread(r);
+            t.setDaemon(true);
+            // leetocode does not allow executor.shutdown().
+            // use daemon threads so the program can exit.
+            return t;
+        });
+
+        while (true) {
+            String url = queue.poll();
+
+            if (url!=null) {
+                if (getHostName(url).equals(hostname) && !visited.contains(url)) {
+                    res.add(url);
+                    visited.add(url);
+
+                    tasks.add(executor.submit(() -> {
+                        List<String> newUrls = htmlParser.getUrls(url);
+                        for (String newUrl : newUrls) {
+                            queue.offer(newUrl);
+                        }
+                    }));
+                }
+            } else {
+                if (!tasks.isEmpty()) {
+                    Future nextTask = tasks.poll();
+                    try {
+                        nextTask.get();
+                    } catch (InterruptedException | ExecutionException e) {}
+                } else {
+                    break;
+                }
+            }
+        }
+        return res;
+    }
+
+    private String getHostName(String url) {
+        url = url.substring(7);
+        String[] parts = url.split("/");
+        return parts[0];
+    }
+}
